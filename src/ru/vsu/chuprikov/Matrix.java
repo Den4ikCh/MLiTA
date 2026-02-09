@@ -10,7 +10,7 @@ import java.util.Scanner;
 public class Matrix {
     static String path = System.getProperty("user.dir") + "\\src\\ru\\vsu\\chuprikov\\";
 
-    public static int determinantCalculation(int[][] matrix) throws IllegalArgumentException {
+    public static double determinantCalculation(double[][] matrix) throws IllegalArgumentException {
         if (matrix.length != matrix[0].length) {
             throw new IllegalArgumentException("Данная матрица не является квадратной");
         }
@@ -20,9 +20,9 @@ public class Matrix {
         if (matrix.length == 2) {
             return matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
         }
-        int sum = 0;
+        double sum = 0;
         for (int i = 0; i < matrix.length; i++) {
-            int[][] temp = new int[matrix.length - 1][matrix.length - 1];
+            double[][] temp = new double[matrix.length - 1][matrix.length - 1];
             int x = 0;
             int y = 0;
             for (int j = 0; j < matrix.length; j++) {
@@ -37,7 +37,7 @@ public class Matrix {
                     }
                 }
             }
-            sum += matrix[i][0] * (int) Math.pow(-1, i) * determinantCalculation(temp);
+            sum += matrix[i][0] * Math.pow(-1, i) * determinantCalculation(temp);
         }
         return sum;
     }

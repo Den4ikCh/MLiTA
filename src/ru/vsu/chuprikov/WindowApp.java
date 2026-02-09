@@ -39,7 +39,7 @@ public class WindowApp extends JFrame {
         tableModel = new DefaultTableModel(3, 3) {
             @Override
             public Class<?> getColumnClass(int columnIndex) {
-                return Integer.class;
+                return Double.class;
             }
         };
         table = new JTable(tableModel);
@@ -106,29 +106,29 @@ public class WindowApp extends JFrame {
 
     private void calculcateMatrix() {
         try {
-            int[][] array = readArrayFromTable();
+            double[][] array = readArrayFromTable();
 
             long startTime = System.nanoTime();
-            int result = Matrix.determinantCalculation(array);
+            double result = Matrix.determinantCalculation(array);
             long endTime = System.nanoTime();
 
             double durationSeconds = (endTime - startTime) / 1e9;
 
-            String message = String.format("Результат: %d. Время работы программы %f секунд.", result, durationSeconds);
+            String message = String.format("Результат: %f. Время работы программы %f секунд.", result, durationSeconds);
             JOptionPane.showMessageDialog(this, message);
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Все элементы должны быть целыми числами");
         }
     }
 
-    private int[][] readArrayFromTable() {
+    private double[][] readArrayFromTable() {
         int rows = tableModel.getRowCount();
         int cols = tableModel.getColumnCount();
-        int[][] array = new int[rows][cols];
+        double[][] array = new double[rows][cols];
 
         for (int i = 0; i < rows; i++) {
             for (int j = 0; j < cols; j++) {
-                int value = Integer.parseInt(tableModel.getValueAt(i, j).toString());
+                double value = Double.parseDouble(tableModel.getValueAt(i, j).toString());
                 array[i][j] = value;
             }
         }
