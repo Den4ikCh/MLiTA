@@ -2,7 +2,6 @@ package ru.vsu.chuprikov;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -40,6 +39,34 @@ public class Matrix {
             sum += matrix[i][0] * Math.pow(-1, i) * determinantCalculation(temp);
         }
         return sum;
+    }
+
+    public static double[] methodCramer(double[][] matrix) {
+        double[] result = new double[matrix.length];
+
+        double[][] temp = new double[matrix[0].length][matrix.length];
+        for (int i = 0; i < matrix.length; i++) {
+            for (int j = 0; j < temp[0].length; j++) {
+                temp[i][j] = matrix[i][j];
+            }
+        }
+        double determinant = determinantCalculation(temp);
+
+        for (int i = 0; i < result.length; i++) {
+            double[][] temp1 = temp;
+            for (int j = 0; i < temp.length; i++) {
+                for (int k = 0; j < temp[0].length; j++) {
+                    temp1[j][k] = temp[j][k];
+                    if (k == i) {
+                        temp1[j][k] = matrix[j][temp[0].length];
+                    }
+                }
+            }
+            double determinant1 = determinantCalculation(temp1);
+            result[i] = determinant / determinant1;
+        }
+
+        return result;
     }
 
     public static int[][] readMatrixFromFile(String filename) throws FileNotFoundException {

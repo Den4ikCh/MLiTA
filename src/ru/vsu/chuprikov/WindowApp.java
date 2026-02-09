@@ -4,13 +4,15 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.io.File;
+import java.util.Arrays;
 
 
 public class WindowApp extends JFrame {
     private String path = System.getProperty("user.dir") + "\\src\\ru\\vsu\\chuprikov\\";
     private JTable table;
     private DefaultTableModel tableModel;
-    private JTextField matrixSize;
+    private JTextField rowsField;
+    private JTextField colsField;
 
     public WindowApp() {
         setTitle("Работа с матрицами");
@@ -24,17 +26,22 @@ public class WindowApp extends JFrame {
     private void initializeComponents() {
         JPanel controlPanel = new JPanel(new FlowLayout());
 
-        matrixSize = new JTextField("3", 3);
+        rowsField = new JTextField("3", 3);
+        colsField = new JTextField("3", 3);
 
         JButton createTableBtn = new JButton("Задать размер матрицы");
         JButton loadBtn = new JButton("Загрузить из файла");
         JButton calculateBtn = new JButton("Вычислить определитель");
+        JButton methodCramerBtn = new JButton("Вычислить методом Крамера");
 
-        controlPanel.add(new JLabel("Размер матрицы:"));
-        controlPanel.add(matrixSize);
+        controlPanel.add(new JLabel("Строки:"));
+        controlPanel.add(rowsField);
+        controlPanel.add(new JLabel("Столбцы:"));
+        controlPanel.add(colsField);
         controlPanel.add(createTableBtn);
         controlPanel.add(loadBtn);
         controlPanel.add(calculateBtn);
+        controlPanel.add(methodCramerBtn);
 
         tableModel = new DefaultTableModel(3, 3) {
             @Override
@@ -43,6 +50,7 @@ public class WindowApp extends JFrame {
             }
         };
         table = new JTable(tableModel);
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
                 tableModel.setValueAt(0, i, j);
@@ -57,12 +65,13 @@ public class WindowApp extends JFrame {
         createTableBtn.addActionListener(e -> createTable());
         loadBtn.addActionListener(e -> loadFromFile());
         calculateBtn.addActionListener(e -> calculcateMatrix());
+        methodCramerBtn.addActionListener(e -> methodCramer());
     }
 
     private void createTable() {
         try {
-            int rows = Integer.parseInt(matrixSize.getText());
-            int cols = Integer.parseInt(matrixSize.getText());
+            int rows = Integer.parseInt(rowsField.getText());
+            int cols = Integer.parseInt(colsField.getText());
             if (rows <= 0 || cols <= 0) {
                 throw new Exception();
             }
@@ -115,6 +124,23 @@ public class WindowApp extends JFrame {
             double durationSeconds = (endTime - startTime) / 1e9;
 
             String message = String.format("Результат: %f. Время работы программы %f секунд.", result, durationSeconds);
+            JOptionPane.showMessageDialog(this, message);
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Все элементы должны быть целыми числами");
+        }
+    }
+
+    private void methodCramer() {
+        try {
+            double[][] array = readArrayFromTable();
+
+            long startTime = System.nanoTime();
+            double[] result = Matrix.methodCramer(array);
+            long endTime = System.nanoTime();
+
+            double durationSeconds = (endTime - startTime) / 1e9;
+
+            String message = String.format("Результат: %s. Время работы программы %f секунд.", Arrays.stream(result).toString(), durationSeconds);
             JOptionPane.showMessageDialog(this, message);
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Все элементы должны быть целыми числами");
