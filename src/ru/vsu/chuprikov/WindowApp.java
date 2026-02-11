@@ -1,5 +1,7 @@
 package ru.vsu.chuprikov;
 
+import org.w3c.dom.ls.LSOutput;
+
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
@@ -142,12 +144,19 @@ public class WindowApp extends JFrame {
 
             double durationSeconds = (endTime - startTime) / 1e9;
 
-            String message = String.format("Результат: %s. Время работы программы %f секунд.",
-                    Arrays.toString(result), durationSeconds);
+            String message;
+            if (result == null) {
+                message = "Система не имеет решений.";
+            } else if (result.length == 0) {
+                message = "Система имеет бесконечно много решений.";
+            }
+            else {
+                message = String.format("Результат: %s. Время работы программы %f секунд.",
+                                Arrays.toString(result), durationSeconds);
+            }
             JOptionPane.showMessageDialog(this, message);
         } catch (Exception e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Все элементы должны быть числами");
+            JOptionPane.showMessageDialog(this, "Ошибка при вычислении: " + e.getMessage());
         }
     }
 

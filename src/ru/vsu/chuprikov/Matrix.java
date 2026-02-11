@@ -1,5 +1,7 @@
 package ru.vsu.chuprikov;
 
+import org.w3c.dom.ls.LSOutput;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
@@ -41,7 +43,10 @@ public class Matrix {
         return sum;
     }
 
-    public static double[] methodCramer(double[][] matrix) {
+    public static double[] methodCramer(double[][] matrix) throws IllegalArgumentException {
+        if (matrix.length != matrix[0].length - 1) {
+            throw new IllegalArgumentException("Невозможно применить метод Крамера к данной матрице");
+        }
         double[] result = new double[matrix.length];
 
         double[][] temp = new double[matrix.length][matrix.length];
@@ -51,6 +56,8 @@ public class Matrix {
             }
         }
         double determinant = determinantCalculation(temp);
+
+        boolean isAllDeterminantsZero = true;
 
         for (int i = 0; i < result.length; i++) {
             double[][] temp1 = new double[matrix.length][matrix.length];
@@ -63,7 +70,18 @@ public class Matrix {
                 }
             }
             double determinant1 = determinantCalculation(temp1);
+            if (determinant1 != 0) {
+                isAllDeterminantsZero = false;
+            }
             result[i] = determinant1 / determinant;
+        }
+
+        if (determinant == 0) {
+            if (isAllDeterminantsZero) {
+                return new double[0]; //бесконечно много решений
+            } else {
+                return null; //нет решений
+            }
         }
 
         return result;
