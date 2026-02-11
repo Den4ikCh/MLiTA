@@ -44,18 +44,18 @@ public class Matrix {
     public static double[] methodCramer(double[][] matrix) {
         double[] result = new double[matrix.length];
 
-        double[][] temp = new double[matrix[0].length][matrix.length];
+        double[][] temp = new double[matrix.length][matrix.length];
         for (int i = 0; i < matrix.length; i++) {
-            for (int j = 0; j < temp[0].length; j++) {
+            for (int j = 0; j < temp.length; j++) {
                 temp[i][j] = matrix[i][j];
             }
         }
         double determinant = determinantCalculation(temp);
 
         for (int i = 0; i < result.length; i++) {
-            double[][] temp1 = temp;
-            for (int j = 0; i < temp.length; i++) {
-                for (int k = 0; j < temp[0].length; j++) {
+            double[][] temp1 = new double[matrix.length][matrix.length];
+            for (int j = 0; j < temp.length; j++) {
+                for (int k = 0; k < temp.length; k++) {
                     temp1[j][k] = temp[j][k];
                     if (k == i) {
                         temp1[j][k] = matrix[j][temp[0].length];
@@ -63,21 +63,20 @@ public class Matrix {
                 }
             }
             double determinant1 = determinantCalculation(temp1);
-            result[i] = determinant / determinant1;
+            result[i] = determinant1 / determinant;
         }
 
         return result;
     }
 
-    public static int[][] readMatrixFromFile(String filename) throws FileNotFoundException {
-        int[][] matrix = {};
+    public static double[][] readMatrixFromFile(String filename) throws FileNotFoundException {
         File file = new File(path + filename);
 
         if (!file.exists()) {
             throw new FileNotFoundException(filename + " not found");
         }
 
-        List<int[]> rows = new ArrayList<>();
+        List<double[]> rows = new ArrayList<>();
 
         try (Scanner scanner = new Scanner(file)) {
             while (scanner.hasNextLine()) {
@@ -87,17 +86,17 @@ public class Matrix {
                 }
 
                 String[] parts = line.split("\\s+");
-                int[] row = new int[parts.length];
+                double[] row = new double[parts.length];
 
                 for (int i = 0; i < parts.length; i++) {
-                    row[i] = Integer.parseInt(parts[i]);
+                    row[i] = Double.parseDouble(parts[i].replace(',', '.'));
                 }
 
                 rows.add(row);
             }
         }
 
-        int[][] result = new int[rows.size()][];
+        double[][] result = new double[rows.size()][];
         for (int i = 0; i < rows.size(); i++) {
             result[i] = rows.get(i);
         }

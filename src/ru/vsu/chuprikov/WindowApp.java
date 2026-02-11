@@ -96,7 +96,6 @@ public class WindowApp extends JFrame {
             public boolean accept(File file) {
                 return file.isDirectory() || file.getName().toLowerCase().endsWith(".txt");
             }
-
             @Override
             public String getDescription() {
                 return "Текстовые файлы (*.txt)";
@@ -105,7 +104,7 @@ public class WindowApp extends JFrame {
 
         if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             try {
-                int[][] array = Matrix.readMatrixFromFile(fileChooser.getSelectedFile().getName());
+                double[][] array = Matrix.readMatrixFromFile(fileChooser.getSelectedFile().getName());
                 displayArrayInTable(array);
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "Ошибка загрузки файла: " + ex.getMessage());
@@ -123,10 +122,13 @@ public class WindowApp extends JFrame {
 
             double durationSeconds = (endTime - startTime) / 1e9;
 
-            String message = String.format("Результат: %f. Время работы программы %f секунд.", result, durationSeconds);
+            String message = String.format("Результат: %.6f. Время работы программы %.9f секунд.",
+                    result, durationSeconds);
             JOptionPane.showMessageDialog(this, message);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Все элементы должны быть числами (формат: 123 или 123.456)");
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Все элементы должны быть целыми числами");
+            JOptionPane.showMessageDialog(this, "Ошибка при вычислении: " + e.getMessage());
         }
     }
 
@@ -140,10 +142,12 @@ public class WindowApp extends JFrame {
 
             double durationSeconds = (endTime - startTime) / 1e9;
 
-            String message = String.format("Результат: %s. Время работы программы %f секунд.", Arrays.stream(result).toString(), durationSeconds);
+            String message = String.format("Результат: %s. Время работы программы %f секунд.",
+                    Arrays.toString(result), durationSeconds);
             JOptionPane.showMessageDialog(this, message);
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Все элементы должны быть целыми числами");
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Все элементы должны быть числами");
         }
     }
 
@@ -154,15 +158,19 @@ public class WindowApp extends JFrame {
 
         for (int i = 0; i < rows; i++) {
             for (int j = 0; j < cols; j++) {
-                double value = Double.parseDouble(tableModel.getValueAt(i, j).toString());
-                array[i][j] = value;
+                Object value = tableModel.getValueAt(i, j);
+                if (value == null || value.toString().trim().isEmpty()) {
+                    array[i][j] = 0.0;
+                } else {
+                    String strValue = value.toString().trim().replace(',', '.');
+                    array[i][j] = Double.parseDouble(strValue);
+                }
             }
         }
-
         return array;
     }
 
-    private void displayArrayInTable(int[][] array) {
+    private void displayArrayInTable(double[][] array) {
         tableModel.setRowCount(array.length);
         tableModel.setColumnCount(array.length > 0 ? array[0].length : 0);
 
