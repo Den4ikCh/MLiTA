@@ -1,12 +1,8 @@
 package ru.vsu.chuprikov;
 
-import org.w3c.dom.ls.LSOutput;
-
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 
 public class Matrix {
     static String path = System.getProperty("user.dir") + "\\src\\ru\\vsu\\chuprikov\\";
@@ -76,7 +72,7 @@ public class Matrix {
             result[i] = determinant1 / determinant;
         }
 
-        if (determinant == 0) {
+        if (Math.abs(determinant) < 1e-10) {
             if (isAllDeterminantsZero) {
                 return new double[0]; //бесконечно много решений
             } else {
@@ -85,6 +81,90 @@ public class Matrix {
         }
 
         return result;
+    }
+
+    public static List<Object> methodGaussian(double[][] matrix) throws IllegalArgumentException {
+        if (matrix.length != matrix[0].length - 1) {
+            throw new IllegalArgumentException("Невозможно применить метод Гаусса к данной матрице");
+        }
+
+        int n = matrix.length;
+        double[] result = new double[n];
+
+        double[][] temp = new double[n][n + 1];
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j <= n; j++) {
+                temp[i][j] = matrix[i][j];
+            }
+        }
+
+        for (int i = 0; i < n; i++) {
+            int index = -1;
+
+            for (int j = i; j < n; j++) {
+                if (Math.abs(temp[j][i]) > 1e-10) {
+                    index = j;
+                    break;
+                }
+            }
+
+            if (index == -1) {
+                boolean hasSolution = true;
+                for (int j = i; j < n; j++) {
+                    if (Math.abs(temp[j][n]) > 1e-10) {
+                        hasSolution = false;
+                        break;
+                    }
+                }
+                if (!hasSolution) {
+                    return null;
+                }
+                continue;
+            }
+
+            if (index != i) {
+                double[] temp1 = temp[i];
+                temp[i] = temp[index];
+                temp[index] = temp1;
+            }
+
+            double pivot = temp[i][i];
+            for (int j = i; j <= n; j++) {
+                temp[i][j] /= pivot;
+            }
+
+            for (int j = 0; j < n; j++) {
+                if (j == i || Math.abs(temp[j][i]) < 1e-10) {
+                    continue;
+                }
+                double factor = temp[j][i];
+                for (int k = i; k <= n; k++) {
+                    temp[j][k] -= factor * temp[i][k];
+                }
+            }
+        }
+
+        for (int i = 0; i < n; i++) {
+            boolean allZeros = true;
+            for (int j = 0; j < n; j++) {
+                if (Math.abs(temp[i][j]) > 1e-10) {
+                    allZeros = false;
+                    break;
+                }
+            }
+            if (allZeros && Math.abs(temp[i][n]) < 1e-10) {
+                return new ArrayList<>();
+            }
+        }
+
+        for (int i = 0; i < n; i++) {
+            result[i] = temp[i][n];
+        }
+
+        ArrayList<Object> list = new ArrayList<>();
+        list.add(result);
+        list.add(temp);
+        return list;
     }
 
     public static double[][] readMatrixFromFile(String filename) throws FileNotFoundException {

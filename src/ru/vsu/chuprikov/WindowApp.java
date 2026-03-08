@@ -1,13 +1,10 @@
 package ru.vsu.chuprikov;
 
-import org.w3c.dom.ls.LSOutput;
-
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.io.File;
-import java.util.Arrays;
-
+import java.util.List;
 
 public class WindowApp extends JFrame {
     private String path = System.getProperty("user.dir") + "\\src\\ru\\vsu\\chuprikov\\";
@@ -26,24 +23,47 @@ public class WindowApp extends JFrame {
     }
 
     private void initializeComponents() {
-        JPanel controlPanel = new JPanel(new FlowLayout());
+        JPanel mainPanel = new JPanel(new BorderLayout());
+
+        JPanel controlPanel = new JPanel();
+        controlPanel.setLayout(new BoxLayout(controlPanel, BoxLayout.Y_AXIS));
+        controlPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+
+        JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        row1.setBorder(BorderFactory.createTitledBorder("Размер матрицы"));
 
         rowsField = new JTextField("3", 3);
         colsField = new JTextField("3", 3);
 
-        JButton createTableBtn = new JButton("Задать размер матрицы");
+        JButton createTableBtn = new JButton("Задать размер");
+
+        row1.add(new JLabel("Строки:"));
+        row1.add(rowsField);
+        row1.add(Box.createHorizontalStrut(10));
+        row1.add(new JLabel("Столбцы:"));
+        row1.add(colsField);
+        row1.add(Box.createHorizontalStrut(20));
+        row1.add(createTableBtn);
+
+        JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        row2.setBorder(BorderFactory.createTitledBorder("Операции"));
+
         JButton loadBtn = new JButton("Загрузить из файла");
         JButton calculateBtn = new JButton("Вычислить определитель");
-        JButton methodCramerBtn = new JButton("Вычислить методом Крамера");
+        JButton methodCramerBtn = new JButton("Метод Крамера");
+        JButton methodGaussianBtn = new JButton("Метод Гаусса");
 
-        controlPanel.add(new JLabel("Строки:"));
-        controlPanel.add(rowsField);
-        controlPanel.add(new JLabel("Столбцы:"));
-        controlPanel.add(colsField);
-        controlPanel.add(createTableBtn);
-        controlPanel.add(loadBtn);
-        controlPanel.add(calculateBtn);
-        controlPanel.add(methodCramerBtn);
+        row2.add(loadBtn);
+        row2.add(Box.createHorizontalStrut(5));
+        row2.add(calculateBtn);
+        row2.add(Box.createHorizontalStrut(5));
+        row2.add(methodCramerBtn);
+        row2.add(Box.createHorizontalStrut(5));
+        row2.add(methodGaussianBtn);
+
+        controlPanel.add(row1);
+        controlPanel.add(Box.createVerticalStrut(5));
+        controlPanel.add(row2);
 
         tableModel = new DefaultTableModel(3, 3) {
             @Override
@@ -51,23 +71,34 @@ public class WindowApp extends JFrame {
                 return Double.class;
             }
         };
+
         table = new JTable(tableModel);
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+
+        for (int i = 0; i < 3; i++) {
+            table.getColumnModel().getColumn(i).setPreferredWidth(80);
+        }
+
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
-                tableModel.setValueAt(0, i, j);
+                tableModel.setValueAt(0.0, i, j);
             }
         }
-        JScrollPane scrollPane = new JScrollPane(table);
 
-        setLayout(new BorderLayout());
-        add(controlPanel, BorderLayout.NORTH);
-        add(scrollPane, BorderLayout.CENTER);
+        JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.setBorder(BorderFactory.createTitledBorder("Введите матрицу"));
 
         createTableBtn.addActionListener(e -> createTable());
         loadBtn.addActionListener(e -> loadFromFile());
-        calculateBtn.addActionListener(e -> calculcateMatrix());
+        calculateBtn.addActionListener(e -> calculateMatrix());
         methodCramerBtn.addActionListener(e -> methodCramer());
+        methodGaussianBtn.addActionListener(e -> methodGaussian());
+
+        mainPanel.add(controlPanel, BorderLayout.NORTH);
+        mainPanel.add(scrollPane, BorderLayout.CENTER);
+
+        setLayout(new BorderLayout());
+        add(mainPanel, BorderLayout.CENTER);
     }
 
     private void createTable() {
@@ -114,7 +145,7 @@ public class WindowApp extends JFrame {
         }
     }
 
-    private void calculcateMatrix() {
+    private void calculateMatrix() {
         try {
             double[][] array = readArrayFromTable();
 
@@ -151,8 +182,46 @@ public class WindowApp extends JFrame {
                 message = "Система имеет бесконечно много решений.";
             }
             else {
+                String resultString = "";
+                for (int i = 0; i < result.length - 1; i++) {
+                    resultString += String.format("x%d = %.2f; ", i + 1, result[i]);
+                }
+                resultString += String.format("x%d = %.2f", result.length, result[result.length - 1]);
                 message = String.format("Результат: %s. Время работы программы %f секунд.",
-                                Arrays.toString(result), durationSeconds);
+                        resultString, durationSeconds);
+            }
+            JOptionPane.showMessageDialog(this, message);
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Ошибка при вычислении: " + e.getMessage());
+        }
+    }
+
+    private void methodGaussian() {
+        try {
+            double[][] array = readArrayFromTable();
+
+            long startTime = System.nanoTime();
+            List<Object> results = Matrix.methodGaussian(array);
+            long endTime = System.nanoTime();
+
+            double durationSeconds = (endTime - startTime) / 1e9;
+
+            String message;
+            if (results == null) {
+                message = "Система не имеет решений.";
+            } else if (results.isEmpty()) {
+                message = "Система имеет бесконечно много решений.";
+            } else {
+                double[] result = (double[]) results.getFirst();
+                double[][] resultMatrix = (double[][]) results.getLast();
+                displayArrayInTable(resultMatrix);
+                String resultString = "";
+                for (int i = 0; i < result.length - 1; i++) {
+                    resultString += String.format("x%d = %.2f; ", i + 1, result[i]);
+                }
+                resultString += String.format("x%d = %.2f", result.length, result[result.length - 1]);
+                message = String.format("Результат: %s. Время работы программы %f секунд.",
+                        resultString, durationSeconds);
             }
             JOptionPane.showMessageDialog(this, message);
         } catch (Exception e) {
