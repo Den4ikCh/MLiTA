@@ -52,6 +52,7 @@ public class WindowApp extends JFrame {
         JButton calculateBtn = new JButton("Вычислить определитель");
         JButton methodCramerBtn = new JButton("Метод Крамера");
         JButton methodGaussianBtn = new JButton("Метод Гаусса");
+        JButton inverseMatrixBtn = new JButton("Обратная матрица");
 
         row2.add(loadBtn);
         row2.add(Box.createHorizontalStrut(5));
@@ -60,6 +61,8 @@ public class WindowApp extends JFrame {
         row2.add(methodCramerBtn);
         row2.add(Box.createHorizontalStrut(5));
         row2.add(methodGaussianBtn);
+        row2.add(Box.createHorizontalStrut(5));
+        row2.add(inverseMatrixBtn);
 
         controlPanel.add(row1);
         controlPanel.add(Box.createVerticalStrut(5));
@@ -88,17 +91,100 @@ public class WindowApp extends JFrame {
         JScrollPane scrollPane = new JScrollPane(table);
         scrollPane.setBorder(BorderFactory.createTitledBorder("Введите матрицу"));
 
+        JPanel tablePanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        tablePanel.add(scrollPane);
+
         createTableBtn.addActionListener(e -> createTable());
         loadBtn.addActionListener(e -> loadFromFile());
         calculateBtn.addActionListener(e -> calculateMatrix());
         methodCramerBtn.addActionListener(e -> methodCramer());
         methodGaussianBtn.addActionListener(e -> methodGaussian());
+        inverseMatrixBtn.addActionListener(e -> inverseMatrix());
 
         mainPanel.add(controlPanel, BorderLayout.NORTH);
-        mainPanel.add(scrollPane, BorderLayout.CENTER);
+        mainPanel.add(tablePanel, BorderLayout.CENTER);
 
         setLayout(new BorderLayout());
         add(mainPanel, BorderLayout.CENTER);
+
+        JLabel statusLabel = new JLabel(" Готов к работе");
+        statusLabel.setBorder(BorderFactory.createEtchedBorder());
+        add(statusLabel, BorderLayout.SOUTH);
+    }
+
+    private void inverseMatrix() {
+        try {
+            double[][] array = readArrayFromTable();
+
+            if (array.length != array[0].length) {
+                JOptionPane.showMessageDialog(this, "Матрица должна быть квадратной для нахождения обратной");
+                return;
+            }
+
+            long startTime = System.nanoTime();
+            double[][] inverse = Matrix.getInverseMatrix(array);
+            long endTime = System.nanoTime();
+
+            double durationSeconds = (endTime - startTime) / 1e9;
+
+            displayArrayInTable(inverse);
+
+            double[][] product = Matrix.getMatrixMultiply(array, inverse);
+
+            boolean isIdentity = true;
+            for (int i = 0; i < product.length; i++) {
+                for (int j = 0; j < product.length; j++) {
+                    if (i == j) {
+                        if (Math.abs(product[i][j] - 1.0) > 1e-9) {
+                            isIdentity = false;
+                            break;
+                        }
+                    } else {
+                        if (Math.abs(product[i][j]) > 1e-9) {
+                            isIdentity = false;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            StringBuilder message = new StringBuilder();
+            message.append("Обратная матрица найдена и отображена в таблице.\n\n");
+            message.append("Проверка: A * A⁻¹ = \n");
+            for (int i = 0; i < Math.min(5, product.length); i++) {
+                for (int j = 0; j < Math.min(5, product.length); j++) {
+                    message.append(String.format("%8.4f ", product[i][j]));
+                }
+                message.append("\n");
+            }
+
+            if (product.length > 5) {
+                message.append("...\n");
+            }
+
+            if (isIdentity) {
+                message.append("\nРезультат: Единичная матрица ✓");
+            } else {
+                message.append("\nРезультат: НЕ единичная матрица ✗");
+            }
+
+            message.append(String.format("\n\nВремя: %.9f сек.", durationSeconds));
+
+            JOptionPane.showMessageDialog(this, message.toString(), "Обратная матрица", JOptionPane.INFORMATION_MESSAGE);
+            updateStatus("Обратная матрица найдена");
+
+        } catch (IllegalArgumentException e) {
+            JOptionPane.showMessageDialog(this, e.getMessage());
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Ошибка: " + e.getMessage());
+        }
+    }
+
+    private void updateStatus(String text) {
+        Component component = ((BorderLayout)getContentPane().getLayout()).getLayoutComponent(BorderLayout.SOUTH);
+        if (component instanceof JLabel) {
+            ((JLabel) component).setText(" " + text);
+        }
     }
 
     private void createTable() {

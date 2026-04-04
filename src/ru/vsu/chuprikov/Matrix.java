@@ -167,6 +167,63 @@ public class Matrix {
         return list;
     }
 
+    public static double[][] getInverseMatrix(double[][] matrix) throws IllegalArgumentException {
+        if (matrix.length != matrix[0].length) {
+            throw new IllegalArgumentException("Данная матрица не является квадратной");
+        }
+
+        int n = matrix.length;
+        double[][] result = new double[n][n];
+
+        double determinant = determinantCalculation(matrix);
+
+        if (Math.abs(determinant) < 1e-10) {
+            throw new IllegalArgumentException("Определитель матрицы равен 0, обратная матрица не существует");
+        }
+
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                double[][] temp = new double[n - 1][n - 1];
+                int x = 0;
+                int y = 0;
+                for (int k = 0; k < n; k++) {
+                    for (int l = 0; l < n; l++) {
+                        if (k != i && l != j) {
+                            temp[x][y] = matrix[k][l];
+                            y++;
+                            if (y == n - 1) {
+                                y = 0;
+                                x++;
+                            }
+                        }
+                    }
+                }
+                result[j][i] = Math.pow(-1, i + j) * determinantCalculation(temp) / determinant;
+            }
+        }
+
+        return result;
+    }
+
+    public static double[][] getMatrixMultiply(double[][] matrix1, double matrix2[][]) throws IllegalArgumentException {
+        if (matrix1[0].length != matrix2.length) {
+            throw new IllegalArgumentException("Нельзя найти произведение данных матриц. Количество столбцов первой матрицы должно равняться количеству строк второй");
+        }
+
+        double[][] result = new double[matrix1.length][matrix2[0].length];
+        int n = matrix1[0].length;
+
+        for (int i = 0; i < matrix1.length; i++) {
+            for (int j = 0; j < matrix2[0].length; j++) {
+                for (int k = 0; k < n; k++) {
+                    result[i][j] += matrix1[i][k] * matrix2[k][j];
+                }
+            }
+        }
+
+        return result;
+    }
+
     public static double[][] readMatrixFromFile(String filename) throws FileNotFoundException {
         File file = new File(path + filename);
 
