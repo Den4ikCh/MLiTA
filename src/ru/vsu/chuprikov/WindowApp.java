@@ -76,7 +76,7 @@ public class WindowApp extends JFrame {
         };
 
         table = new JTable(tableModel);
-        table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
 
         for (int i = 0; i < 3; i++) {
             table.getColumnModel().getColumn(i).setPreferredWidth(80);
@@ -91,9 +91,6 @@ public class WindowApp extends JFrame {
         JScrollPane scrollPane = new JScrollPane(table);
         scrollPane.setBorder(BorderFactory.createTitledBorder("Введите матрицу"));
 
-        JPanel tablePanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        tablePanel.add(scrollPane);
-
         createTableBtn.addActionListener(e -> createTable());
         loadBtn.addActionListener(e -> loadFromFile());
         calculateBtn.addActionListener(e -> calculateMatrix());
@@ -102,14 +99,10 @@ public class WindowApp extends JFrame {
         inverseMatrixBtn.addActionListener(e -> inverseMatrix());
 
         mainPanel.add(controlPanel, BorderLayout.NORTH);
-        mainPanel.add(tablePanel, BorderLayout.CENTER);
+        mainPanel.add(scrollPane, BorderLayout.CENTER);
 
         setLayout(new BorderLayout());
         add(mainPanel, BorderLayout.CENTER);
-
-        JLabel statusLabel = new JLabel(" Готов к работе");
-        statusLabel.setBorder(BorderFactory.createEtchedBorder());
-        add(statusLabel, BorderLayout.SOUTH);
     }
 
     private void inverseMatrix() {
@@ -251,40 +244,16 @@ public class WindowApp extends JFrame {
         }
     }
 
-    private void methodCramer() {
-        try {
-            double[][] array = readArrayFromTable();
-
-            long startTime = System.nanoTime();
-            double[] result = Matrix.methodCramer(array);
-            long endTime = System.nanoTime();
-
-            double durationSeconds = (endTime - startTime) / 1e9;
-
-            String message;
-            if (result == null) {
-                message = "Система не имеет решений.";
-            } else if (result.length == 0) {
-                message = "Система имеет бесконечно много решений.";
-            }
-            else {
-                String resultString = "";
-                for (int i = 0; i < result.length - 1; i++) {
-                    resultString += String.format("x%d = %.2f; ", i + 1, result[i]);
-                }
-                resultString += String.format("x%d = %.2f", result.length, result[result.length - 1]);
-                message = String.format("Результат: %s. Время работы программы %f секунд.",
-                        resultString, durationSeconds);
-            }
-            JOptionPane.showMessageDialog(this, message);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Ошибка при вычислении: " + e.getMessage());
-        }
-    }
-
     private void methodGaussian() {
         try {
             double[][] array = readArrayFromTable();
+
+            if (array[0].length != array.length + 1) {
+                JOptionPane.showMessageDialog(this,
+                        "Для метода Гаусса матрица должна иметь " + array.length +
+                                " строк и " + (array.length + 1) + " столбцов");
+                return;
+            }
 
             long startTime = System.nanoTime();
             List<Object> results = Matrix.methodGaussian(array);
@@ -292,26 +261,151 @@ public class WindowApp extends JFrame {
 
             double durationSeconds = (endTime - startTime) / 1e9;
 
-            String message;
             if (results == null) {
-                message = "Система не имеет решений.";
-            } else if (results.isEmpty()) {
-                message = "Система имеет бесконечно много решений.";
+                JOptionPane.showMessageDialog(this, "Система не имеет решений.");
+                updateStatus("Метод Гаусса: нет решений");
             } else {
-                double[] result = (double[]) results.getFirst();
-                double[][] resultMatrix = (double[][]) results.getLast();
-                displayArrayInTable(resultMatrix);
-                String resultString = "";
-                for (int i = 0; i < result.length - 1; i++) {
-                    resultString += String.format("x%d = %.2f; ", i + 1, result[i]);
+                double[][] transformed = (double[][]) results.get(0);
+                int[] pivotColumns = (int[]) results.get(1);
+                List<Integer> freeVars = (List<Integer>) results.get(2);
+
+                displayArrayInTable(transformed);
+
+                if (freeVars.isEmpty()) {
+                    double[] solution = new double[array.length];
+                    for (int i = 0; i < array.length; i++) {
+                        solution[i] = transformed[i][array.length];
+                    }
+
+                    StringBuilder sb = new StringBuilder("Единственное решение:\n\n");
+                    for (int i = 0; i < solution.length; i++) {
+                        sb.append(String.format("x%d = %.4f\n", i + 1, solution[i]));
+                    }
+                    sb.append(String.format("\nВремя: %.9f сек.", durationSeconds));
+                    JOptionPane.showMessageDialog(this, sb.toString());
+                } else {
+                    StringBuilder sb = new StringBuilder("Система имеет бесконечно много решений.\n\n");
+                    sb.append("Выражение через свободные переменные:\n\n");
+
+                    for (int i = 0; i < array.length; i++) {
+                        if (pivotColumns[i] != -1) {
+                            sb.append(String.format("x%d = ", pivotColumns[i] + 1));
+                            double constTerm = transformed[i][array.length];
+                            if (Math.abs(constTerm) > 1e-10) {
+                                sb.append(String.format("%.2f", constTerm));
+                            }
+
+                            for (int freeVar : freeVars) {
+                                double coeff = -transformed[i][freeVar];
+                                if (Math.abs(coeff) > 1e-10) {
+                                    if (coeff > 0 && sb.toString().contains("=")) {
+                                        sb.append(" + ");
+                                    } else if (coeff < 0) {
+                                        sb.append(" - ");
+                                    }
+                                    sb.append(String.format("%.2f·x%d", Math.abs(coeff), freeVar + 1));
+                                }
+                            }
+
+                            if (!sb.toString().contains("x")) {
+                                sb.append("0");
+                            }
+                            sb.append("\n");
+                        }
+                    }
+
+                    sb.append("\nСвободные переменные: ");
+                    for (int i = 0; i < freeVars.size(); i++) {
+                        sb.append(String.format("x%d", freeVars.get(i) + 1));
+                        if (i < freeVars.size() - 1) sb.append(", ");
+                    }
+
+                    sb.append(String.format("\n\nВремя: %.9f сек.", durationSeconds));
+                    JOptionPane.showMessageDialog(this, sb.toString());
                 }
-                resultString += String.format("x%d = %.2f", result.length, result[result.length - 1]);
-                message = String.format("Результат: %s. Время работы программы %f секунд.",
-                        resultString, durationSeconds);
+                updateStatus("Метод Гаусса выполнен");
             }
-            JOptionPane.showMessageDialog(this, message);
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Ошибка при вычислении: " + e.getMessage());
+            JOptionPane.showMessageDialog(this, "Ошибка: " + e.getMessage());
+        }
+    }
+
+    private void methodCramer() {
+        try {
+            double[][] array = readArrayFromTable();
+
+            if (array[0].length != array.length + 1) {
+                JOptionPane.showMessageDialog(this,
+                        "Для метода Крамера матрица должна иметь " + array.length +
+                                " строк и " + (array.length + 1) + " столбцов");
+                return;
+            }
+
+            long startTime = System.nanoTime();
+            Object[] results = Matrix.methodCramer(array);
+            long endTime = System.nanoTime();
+
+            double durationSeconds = (endTime - startTime) / 1e9;
+
+            double[] solution = (double[]) results[0];
+            double[][] transformed = (double[][]) results[1];
+            int[] pivotColumns = (int[]) results[2];
+            List<Integer> freeVars = (List<Integer>) results[3];
+
+            if (solution == null && transformed == null) {
+                JOptionPane.showMessageDialog(this, "Система не имеет решений.");
+            } else if (solution != null) {
+                StringBuilder sb = new StringBuilder("Единственное решение:\n\n");
+                for (int i = 0; i < solution.length; i++) {
+                    sb.append(String.format("x%d = %.4f\n", i + 1, solution[i]));
+                }
+                sb.append(String.format("\nВремя: %.9f сек.", durationSeconds));
+                JOptionPane.showMessageDialog(this, sb.toString());
+            } else {
+                displayArrayInTable(transformed);
+
+                StringBuilder sb = new StringBuilder("Система имеет бесконечно много решений.\n\n");
+                sb.append("Выражение через свободные переменные:\n\n");
+
+                for (int i = 0; i < array.length; i++) {
+                    if (pivotColumns[i] != -1) {
+                        sb.append(String.format("x%d = ", pivotColumns[i] + 1));
+                        double constTerm = transformed[i][array.length];
+                        if (Math.abs(constTerm) > 1e-10) {
+                            sb.append(String.format("%.2f", constTerm));
+                        }
+
+                        for (int freeVar : freeVars) {
+                            double coeff = -transformed[i][freeVar];
+                            if (Math.abs(coeff) > 1e-10) {
+                                if (coeff > 0 && sb.toString().contains("=")) {
+                                    sb.append(" + ");
+                                } else if (coeff < 0) {
+                                    sb.append(" - ");
+                                }
+                                sb.append(String.format("%.2f·x%d", Math.abs(coeff), freeVar + 1));
+                            }
+                        }
+
+                        if (!sb.toString().contains("x")) {
+                            sb.append("0");
+                        }
+                        sb.append("\n");
+                    }
+                }
+
+                sb.append("\nСвободные переменные: ");
+                for (int i = 0; i < freeVars.size(); i++) {
+                    sb.append(String.format("x%d", freeVars.get(i) + 1));
+                    if (i < freeVars.size() - 1) sb.append(", ");
+                }
+
+                sb.append(String.format("\n\nВремя: %.9f сек.", durationSeconds));
+                JOptionPane.showMessageDialog(this, sb.toString());
+            }
+            updateStatus("Метод Крамера выполнен");
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Ошибка: " + e.getMessage());
         }
     }
 

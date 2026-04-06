@@ -39,48 +39,90 @@ public class Matrix {
         return sum;
     }
 
-    public static double[] methodCramer(double[][] matrix) throws IllegalArgumentException {
+    public static Object[] methodCramer(double[][] matrix) throws IllegalArgumentException {
         if (matrix.length != matrix[0].length - 1) {
             throw new IllegalArgumentException("Невозможно применить метод Крамера к данной матрице");
         }
-        double[] result = new double[matrix.length];
 
-        double[][] temp = new double[matrix.length][matrix.length];
-        for (int i = 0; i < matrix.length; i++) {
-            for (int j = 0; j < temp.length; j++) {
+        int n = matrix.length;
+
+        double[][] temp = new double[n][n];
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
                 temp[i][j] = matrix[i][j];
             }
         }
+
         double determinant = determinantCalculation(temp);
 
-        boolean isAllDeterminantsZero = true;
+        if (Math.abs(determinant) < 1e-10) {
+            boolean hasSolution = true;
 
-        for (int i = 0; i < result.length; i++) {
-            double[][] temp1 = new double[matrix.length][matrix.length];
-            for (int j = 0; j < temp.length; j++) {
-                for (int k = 0; k < temp.length; k++) {
+            for (int i = 0; i < n; i++) {
+                double[][] temp1 = new double[n][n];
+                for (int j = 0; j < n; j++) {
+                    for (int k = 0; k < n; k++) {
+                        temp1[j][k] = temp[j][k];
+                        if (k == i) {
+                            temp1[j][k] = matrix[j][n];
+                        }
+                    }
+                }
+                double determinant1 = determinantCalculation(temp1);
+                if (Math.abs(determinant1) > 1e-10) {
+                    hasSolution = false;
+                    break;
+                }
+            }
+
+            if (!hasSolution) {
+                return new Object[] {null, null, null, null};
+            }
+
+            List<Object> gaussResult = methodGaussian(matrix);
+            double[][] transformed = (double[][]) gaussResult.get(0);
+            int[] pivotColumns = (int[]) gaussResult.get(1);
+            List<Integer> freeVars = (List<Integer>) gaussResult.get(2);
+
+            for (int i = 0; i < n; i++) {
+                boolean allZeros = true;
+                for (int j = 0; j < n; j++) {
+                    if (Math.abs(transformed[i][j]) > 1e-10) {
+                        allZeros = false;
+                        break;
+                    }
+                }
+                if (allZeros && Math.abs(transformed[i][n]) > 1e-10) {
+                    return new Object[]{null, null, null, null}; // нет решений
+                }
+            }
+
+            if (freeVars.isEmpty()) {
+                double[] solution = new double[n];
+                for (int i = 0; i < n; i++) {
+                    solution[i] = transformed[i][n];
+                }
+                return new Object[]{solution, null, null, null};
+            } else {
+                return new Object[]{null, transformed, pivotColumns, freeVars};
+            }
+        }
+
+        double[] result = new double[n];
+        for (int i = 0; i < n; i++) {
+            double[][] temp1 = new double[n][n];
+            for (int j = 0; j < n; j++) {
+                for (int k = 0; k < n; k++) {
                     temp1[j][k] = temp[j][k];
                     if (k == i) {
-                        temp1[j][k] = matrix[j][temp[0].length];
+                        temp1[j][k] = matrix[j][n];
                     }
                 }
             }
-            double determinant1 = determinantCalculation(temp1);
-            if (determinant1 != 0) {
-                isAllDeterminantsZero = false;
-            }
-            result[i] = determinant1 / determinant;
+            result[i] = determinantCalculation(temp1) / determinant;
         }
 
-        if (Math.abs(determinant) < 1e-10) {
-            if (isAllDeterminantsZero) {
-                return new double[0]; //бесконечно много решений
-            } else {
-                return null; //нет решений
-            }
-        }
-
-        return result;
+        return new Object[]{result, null, null, null};
     }
 
     public static List<Object> methodGaussian(double[][] matrix) throws IllegalArgumentException {
@@ -89,8 +131,6 @@ public class Matrix {
         }
 
         int n = matrix.length;
-        double[] result = new double[n];
-
         double[][] temp = new double[n][n + 1];
         for (int i = 0; i < n; i++) {
             for (int j = 0; j <= n; j++) {
@@ -152,19 +192,42 @@ public class Matrix {
                     break;
                 }
             }
-            if (allZeros && Math.abs(temp[i][n]) < 1e-10) {
-                return new ArrayList<>();
+            if (allZeros && Math.abs(temp[i][n]) > 1e-10) {
+                return null;
             }
         }
 
+        int[] pivotColumns = new int[n];
         for (int i = 0; i < n; i++) {
-            result[i] = temp[i][n];
+            pivotColumns[i] = -1;
+            for (int j = 0; j < n; j++) {
+                if (Math.abs(temp[i][j]) > 1e-10) {
+                    pivotColumns[i] = j;
+                    break;
+                }
+            }
         }
 
-        ArrayList<Object> list = new ArrayList<>();
-        list.add(result);
-        list.add(temp);
-        return list;
+        List<Integer> freeVars = new ArrayList<>();
+        for (int j = 0; j < n; j++) {
+            boolean isPivot = false;
+            for (int i = 0; i < n; i++) {
+                if (pivotColumns[i] == j) {
+                    isPivot = true;
+                    break;
+                }
+            }
+            if (!isPivot) {
+                freeVars.add(j);
+            }
+        }
+
+        List<Object> result = new ArrayList<>();
+        result.add(temp);
+        result.add(pivotColumns);
+        result.add(freeVars);
+
+        return result;
     }
 
     public static double[][] getInverseMatrix(double[][] matrix) throws IllegalArgumentException {
