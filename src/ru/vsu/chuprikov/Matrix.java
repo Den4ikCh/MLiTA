@@ -93,7 +93,7 @@ public class Matrix {
                     }
                 }
                 if (allZeros && Math.abs(transformed[i][n]) > 1e-10) {
-                    return new Object[]{null, null, null, null}; // нет решений
+                    return new Object[]{null, null, null, null};
                 }
             }
 
@@ -281,6 +281,42 @@ public class Matrix {
                 for (int k = 0; k < n; k++) {
                     result[i][j] += matrix1[i][k] * matrix2[k][j];
                 }
+            }
+        }
+
+        return result;
+    }
+
+    public static double[] methodInverseMatrix(double[][] matrix) throws IllegalArgumentException {
+        if (matrix[0].length != matrix.length + 1) {
+            throw new IllegalArgumentException("Для метода обратной матрицы матрица должна иметь " +
+                    matrix.length + " строк и " + (matrix.length + 1) + " столбцов");
+        }
+
+        int n = matrix.length;
+
+        double[][] A = new double[n][n]; //матрица левой части
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                A[i][j] = matrix[i][j];
+            }
+        }
+
+        double[] B = new double[n]; //матрица правой части
+        for (int i = 0; i < n; i++) {
+            B[i] = matrix[i][n];
+        }
+
+        double[][] inverseA = getInverseMatrix(A);
+
+        if (inverseA == null) {
+            return null;
+        }
+
+        double[] result = new double[n];
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                result[i] += inverseA[i][j] * B[j]; //умножаем обратную матрицу A на B
             }
         }
 

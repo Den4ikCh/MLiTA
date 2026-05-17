@@ -53,6 +53,8 @@ public class WindowApp extends JFrame {
         JButton methodCramerBtn = new JButton("Метод Крамера");
         JButton methodGaussianBtn = new JButton("Метод Гаусса");
         JButton inverseMatrixBtn = new JButton("Обратная матрица");
+        JButton inverseMethodBtn = new JButton("Метод обратной матрицы");
+        JButton eigenBtn = new JButton("Собственные значения/векторы");
 
         row2.add(loadBtn);
         row2.add(Box.createHorizontalStrut(5));
@@ -63,6 +65,9 @@ public class WindowApp extends JFrame {
         row2.add(methodGaussianBtn);
         row2.add(Box.createHorizontalStrut(5));
         row2.add(inverseMatrixBtn);
+        row2.add(inverseMethodBtn);
+        row2.add(Box.createHorizontalStrut(5));
+        row2.add(eigenBtn);
 
         controlPanel.add(row1);
         controlPanel.add(Box.createVerticalStrut(5));
@@ -97,6 +102,8 @@ public class WindowApp extends JFrame {
         methodCramerBtn.addActionListener(e -> methodCramer());
         methodGaussianBtn.addActionListener(e -> methodGaussian());
         inverseMatrixBtn.addActionListener(e -> inverseMatrix());
+        inverseMethodBtn.addActionListener(e -> methodInverseMatrix());
+        eigenBtn.addActionListener(e -> calculateEigen());
 
         mainPanel.add(controlPanel, BorderLayout.NORTH);
         mainPanel.add(scrollPane, BorderLayout.CENTER);
@@ -168,6 +175,84 @@ public class WindowApp extends JFrame {
 
         } catch (IllegalArgumentException e) {
             JOptionPane.showMessageDialog(this, e.getMessage());
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Ошибка: " + e.getMessage());
+        }
+    }
+
+    private void methodInverseMatrix() {
+        try {
+            double[][] array = readArrayFromTable();
+
+            if (array[0].length != array.length + 1) {
+                JOptionPane.showMessageDialog(this,
+                        "Для метода обратной матрицы нужно " + array.length +
+                                " строк и " + (array.length + 1) + " столбцов");
+                return;
+            }
+
+            long startTime = System.nanoTime();
+            double[] result = Matrix.methodInverseMatrix(array);
+            long endTime = System.nanoTime();
+
+            double durationSeconds = (endTime - startTime) / 1e9;
+
+            if (result == null) {
+                JOptionPane.showMessageDialog(this, "Матрица вырождена, обратной не существует");
+            } else {
+                StringBuilder sb = new StringBuilder("Решение методом обратной матрицы:\n\n");
+                for (int i = 0; i < result.length; i++) {
+                    sb.append(String.format("x%d = %.4f\n", i + 1, result[i]));
+                }
+                sb.append(String.format("\nВремя: %.9f сек.", durationSeconds));
+                JOptionPane.showMessageDialog(this, sb.toString());
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Ошибка: " + e.getMessage());
+        }
+    }
+
+    private void calculateEigen() {
+        try {
+            double[][] array = readArrayFromTable();
+
+            if (array.length != array[0].length) {
+                JOptionPane.showMessageDialog(this, "Матрица должна быть квадратной");
+                return;
+            }
+
+            long startTime = System.nanoTime();
+            //Object[] result = Matrix.getEigenValuesAndVectors(array);
+            Object[] result = new Object[] {null, null, "Данная функция пока не поддерживается"};
+            long endTime = System.nanoTime();
+
+            double durationSeconds = (endTime - startTime) / 1e9;
+
+            String error = (String) result[2];
+
+            if (error != null) {
+                JOptionPane.showMessageDialog(this, error);
+                return;
+            }
+
+            double[] eigenValues = (double[]) result[0];
+            double[][] eigenVectors = (double[][]) result[1];
+
+            StringBuilder sb = new StringBuilder("Собственные значения и векторы:\n\n");
+
+            for (int i = 0; i < eigenValues.length; i++) {
+                sb.append(String.format("λ%d = %.4f\n", i + 1, eigenValues[i]));
+                sb.append("Вектор: (");
+                for (int j = 0; j < eigenVectors[i].length; j++) {
+                    sb.append(String.format("%.4f", eigenVectors[i][j]));
+                    if (j < eigenVectors[i].length - 1) sb.append(", ");
+                }
+                sb.append(")\n\n");
+            }
+
+            sb.append(String.format("Время: %.9f сек.", durationSeconds));
+            JOptionPane.showMessageDialog(this, sb.toString());
+
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Ошибка: " + e.getMessage());
         }
