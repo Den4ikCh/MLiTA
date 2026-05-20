@@ -1,5 +1,10 @@
 package ru.vsu.chuprikov;
 
+import org.apache.commons.math4.legacy.linear.EigenDecomposition;
+import org.apache.commons.math4.legacy.linear.MatrixUtils;
+import org.apache.commons.math4.legacy.linear.RealMatrix;
+import org.apache.commons.math4.legacy.linear.RealVector;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.*;
@@ -321,6 +326,121 @@ public class Matrix {
         }
 
         return result;
+    }
+
+    public static Object[] getEigenValuesAndVectors(double[][] matrix) {
+        int n = matrix.length;
+
+        double[] eigenValues;
+
+        if (n == 2) {
+            eigenValues = getEigenValues2x2(matrix);
+            if (eigenValues == null) {
+                return new Object[]{null, null, "Комплексные собственные значения"};
+            }
+        } else {
+            try {
+                RealMatrix realMatrix = MatrixUtils.createRealMatrix(matrix);
+                EigenDecomposition eigenDecomp = new EigenDecomposition(realMatrix);
+                eigenValues = eigenDecomp.getRealEigenvalues();
+            } catch (Exception e) {
+                return new Object[]{null, null, "Ошибка: " + e.getMessage()};
+            }
+        }
+
+        double[][] eigenVectors = new double[n][n];
+        boolean[] used = new boolean[n];
+
+        for (int i = 0; i < n; i++) {
+            if (used[i]) continue;
+
+            List<Integer> sameIndices = new ArrayList<>();
+            for (int j = i; j < n; j++) {
+                if (Math.abs(eigenValues[j] - eigenValues[i]) < 1e-10) {
+                    sameIndices.add(j);
+                    used[j] = true;
+                }
+            }
+
+            List<double[]> vectors = getEigenVectorsForLambda(matrix, eigenValues[i], sameIndices.size());
+            for (int k = 0; k < vectors.size(); k++) {
+                eigenVectors[sameIndices.get(k)] = vectors.get(k);
+            }
+        }
+
+        return new Object[]{eigenValues, eigenVectors, null};
+    }
+
+    private static double[] getEigenValues2x2(double[][] A) {
+        double a = A[0][0], b = A[0][1];
+        double c = A[1][0], d = A[1][1];
+
+        double trace = a + d;
+        double det = a * d - b * c;
+        double D = trace * trace - 4 * det;
+
+        if (D < -1e-10) {
+            return null;
+        }
+
+        D = Math.max(0, D);
+        double sqrtD = Math.sqrt(D);
+
+        return new double[] {(trace + sqrtD) / 2, (trace - sqrtD) / 2};
+    }
+
+    private static List<double[]> getEigenVectorsForLambda(double[][] A, double lambda, int count) {
+        int n = A.length;
+
+        double[][] M = new double[n][n + 1];
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                M[i][j] = A[i][j] - (i == j ? lambda : 0); //A - лямбда * E
+            }
+            M[i][n] = 0;
+        }
+
+        List<Object> gaussResult = methodGaussian(M); //находим решение методом Гаусса
+        if (gaussResult == null) return new ArrayList<>();
+
+        double[][] transformed = (double[][]) gaussResult.get(0);
+        List<Integer> freeVars = (List<Integer>) gaussResult.get(2);
+
+        List<double[]> vectors = new ArrayList<>();
+
+        for (int freeVar : freeVars) {
+            double[] v = new double[n];
+            v[freeVar] = 1.0; //задаём свободной переменной 1
+
+            for (int i = n - 1; i >= 0; i--) {
+                int pivotCol = -1;
+                for (int j = 0; j < n; j++) {
+                    if (Math.abs(transformed[i][j]) > 1e-10) {
+                        pivotCol = j;
+                        break;
+                    }
+                }
+                if (pivotCol != -1 && pivotCol != freeVar) {
+                    double sum = 0;
+                    for (int j = pivotCol + 1; j < n; j++) {
+                        sum += transformed[i][j] * v[j];
+                    }
+                    v[pivotCol] = -sum / transformed[i][pivotCol]; //выражаем через свободные переменные
+                }
+            }
+
+            double norm = 0;
+            for (double val : v) norm += val * val;
+            norm = Math.sqrt(norm);
+            if (norm > 1e-10) {
+                for (int i = 0; i < n; i++) v[i] /= norm; //нормируем все векторы до длины 1
+            }
+
+            vectors.add(v);
+            if (vectors.size() >= count) break;
+        }
+
+        return vectors;
     }
 
     public static double[][] readMatrixFromFile(String filename) throws FileNotFoundException {

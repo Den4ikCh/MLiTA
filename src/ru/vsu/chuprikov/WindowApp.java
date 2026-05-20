@@ -222,8 +222,7 @@ public class WindowApp extends JFrame {
             }
 
             long startTime = System.nanoTime();
-            //Object[] result = Matrix.getEigenValuesAndVectors(array);
-            Object[] result = new Object[] {null, null, "Данная функция пока не поддерживается"};
+            Object[] result = Matrix.getEigenValuesAndVectors(array);
             long endTime = System.nanoTime();
 
             double durationSeconds = (endTime - startTime) / 1e9;
